@@ -1,0 +1,8 @@
+ task main ( )
+ 
+ {
+  OnFwd ( OUT_C ,100 ) ;
+  OnFwd (OUT_A , 50 ) ;
+  Wait (20000 ) ;
+  
+  }
