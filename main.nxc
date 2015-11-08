@@ -1,4 +1,36 @@
+void turn() {
+    OnFwd(OUT_C, 100);
+    OnRev(OUT_A, 100);
+    Wait(5*1000);
+}
+
+void driveAndStop() {
+    OnFwd(OUT_C, 100);
+    OnFwd(OUT_A, 100);
+    Wait(2*1000);
+}
+
+// Hand
+
+#define GRAB_DEGREES 6*360+180
+
+void grab() {
+    /*
+      Startposition: Graue Markierung an Kurbel nach oben, schwarze
+      Markierung and Zahnrädern direkt vor Limit.
+    */
+    RotateMotor(OUT_B, 100, -GRAB_DEGREES);
+}
+
+void release() {
+    /*
+      Startposition: Graue Markierung an Kurbel nach oben, Zahnräder
+      ca. eine Umdrehung vor Limit.
+    */
+    RotateMotor(OUT_B, 100, GRAB_DEGREES);
+}
+
 task main() {
-    TextOut(0, 0, "HelloWorld!");
-    Wait(2000);
+    grab();
+    release();
 }
