@@ -1,8 +1,0 @@
- task main ( )
- 
- {
-  OnFwd ( OUT_AC ,100 ) ;
-
-  Wait (20000 ) ;
-  
-  }
