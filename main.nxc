@@ -32,5 +32,6 @@ void release() {
 
 task main() {
     grab();
+    Wait(2*1000);
     release();
 }
