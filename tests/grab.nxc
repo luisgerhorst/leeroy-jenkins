@@ -1,0 +1,13 @@
+#define GRAB_DEGREES 6*360+180
+
+void grab() {
+    /*
+      Startposition: Graue Markierung an Kurbel nach oben, schwarze
+      Markierung and Zahnrädern direkt vor Limit.
+    */
+    RotateMotor(OUT_B, 100, -GRAB_DEGREES);
+}
+
+task main() {
+    grab();
+}
