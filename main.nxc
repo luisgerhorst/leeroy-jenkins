@@ -1,13 +1,46 @@
-void turn() {
-    OnFwd(OUT_C, 100);
-    OnRev(OUT_A, 100);
-    Wait(5*1000);
+// Sensors
+
+int lightSensorLeft = IN_1;
+int lightSensorMiddle = IN_2;
+int lightSensorRight = IN_3;
+int touchSensor = IN_4;
+
+void setUpSensors() {
+    SetSensorLight(lightSensorLeft);
+    SetSensorLight(lightSensorMiddle);
+    SetSensorLight(lightSensorRight);
+    SetSensorTouch(touchSensor);
 }
 
-void driveAndStop() {
-    OnFwd(OUT_C, 100);
-    OnFwd(OUT_A, 100);
-    Wait(2*1000);
+// Motors
+int motorsLeftRight = OUT_AC;
+int motorRight = OUT_A;
+int motorLeft = OUT_C;
+
+int motorHand = OUT_B;
+
+// Light Sensors
+
+int blackWhiteAverage = 0;
+
+bool isWhite(int sensor) {
+    return Sensor(sensor) > blackWhiteAverage;
+}
+
+bool isBlack(int sensor) {
+    return Sensor(sensor) < blackWhiteAverage;
+}
+
+void calibrateLightSensors(int blackSensor, int whiteSensor1, int whiteSensor2) {
+    int black = Sensor(blackSensor);
+    int white = (Sensor(whiteSensor1) + Sensor(whiteSensor2)) / 2;
+    blackWhiteAverage = (black + white) / 2;
+
+    // Show calculated values.
+    NumOut(0, LCD_LINE1, black);
+    NumOut(0, LCD_LINE2, white);
+    NumOut(0, LCD_LINE3, blackWhiteAverage);
+    Wait(5*1000);
 }
 
 // Hand
@@ -19,7 +52,7 @@ void grab() {
       Startposition: Graue Markierung an Kurbel nach oben, schwarze
       Markierung and Zahnrädern direkt vor Limit.
     */
-    RotateMotor(OUT_B, 100, -GRAB_DEGREES);
+    RotateMotor(motorHand, 100, -GRAB_DEGREES);
 }
 
 void release() {
@@ -27,11 +60,53 @@ void release() {
       Startposition: Graue Markierung an Kurbel nach oben, Zahnräder
       ca. eine Umdrehung vor Limit.
     */
-    RotateMotor(OUT_B, 100, GRAB_DEGREES);
+    RotateMotor(motorHand, 100, GRAB_DEGREES);
 }
 
-task main() {
-    grab();
-    Wait(2*1000);
-    release();
+// Program Flow
+
+task main () {
+
+    setUpSensors();
+    calibrateLightSensors(lightSensorMiddle, lightSensorLeft, lightSensorRight);
+
+    // Start
+    OnFwd(motorsLeftRight, 100);
+
+    while (true) {
+
+        // Auf Linie.
+        if (isWhite(lightSensorLeft) && isBlack(lightSensorMiddle) && isWhite(lightSensorRight)) {
+            OnFwd(motorsLeftRight, 100);
+        }
+
+        // Parallel zu Linie, hoffentlich nicht ganz parallel.
+        else if (isBlack(lightSensorLeft) && isBlack(lightSensorMiddle) && isBlack(lightSensorRight)) {
+            // Weiter in Fahrtrichtung.
+            OnFwd(motorsLeftRight, 50);
+        }
+
+        // Linie verloren.
+        else if (isWhite(lightSensorLeft) && isWhite(lightSensorMiddle) && isWhite(lightSensorRight)) {
+            // Zurückfahren.
+            OnRev(motorsLeftRight, 50);
+        }
+
+        // Rechte Seite wird schwarz.
+        else if (isWhite(lightSensorLeft) && isWhite(lightSensorMiddle) && isBlack(lightSensorRight) ||
+                 isWhite(lightSensorLeft) && isBlack(lightSensorMiddle) && isBlack(lightSensorRight)) {
+            Off(motorRight); // Eventuell rückwärts drehen.
+            OnFwd(motorLeft, 100);
+        }
+
+        // Linke Seite wird schwarz.
+        else if (isBlack(lightSensorLeft) && isWhite(lightSensorMiddle) && isWhite(lightSensorRight) ||
+                 isBlack(lightSensorLeft) && isBlack(lightSensorMiddle) && isWhite(lightSensorRight)) {
+            // Nach links drehen, linken Motor eventuell rückwärts
+            // drehen wenn Kurven kleiner sind.
+            OnFwd(motorRight, 100);
+            Off(motorLeft);
+        }
+
+    }
 }
