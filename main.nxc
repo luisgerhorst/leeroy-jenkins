@@ -63,6 +63,10 @@ void release() {
     RotateMotor(motorHand, 100, GRAB_DEGREES);
 }
 
+// Other
+
+enum Turn { left, right, none };
+
 // Program Flow
 
 task main () {
@@ -88,24 +92,34 @@ task main () {
 
         // Linie verloren.
         else if (isWhite(lightSensorLeft) && isWhite(lightSensorMiddle) && isWhite(lightSensorRight)) {
-            // Zurückfahren.
+            // Zurückfahren
             OnRev(motorsLeftRight, 50);
         }
 
         // Rechte Seite wird schwarz.
-        else if (isWhite(lightSensorLeft) && isWhite(lightSensorMiddle) && isBlack(lightSensorRight) ||
-                 isWhite(lightSensorLeft) && isBlack(lightSensorMiddle) && isBlack(lightSensorRight)) {
-            Off(motorRight); // Eventuell rückwärts drehen.
+
+        else if (isWhite(lightSensorLeft) && isBlack(lightSensorMiddle) && isBlack(lightSensorRight)) {
+            Off(motorRight);
+            OnFwd(motorLeft, 100);
+        }
+
+        else if (isWhite(lightSensorLeft) && isWhite(lightSensorMiddle) && isBlack(lightSensorRight)) {
+            // Scharf rechts abbiegen. TODO: Verbessern.
+            OnRev(motorRight, 100);
             OnFwd(motorLeft, 100);
         }
 
         // Linke Seite wird schwarz.
-        else if (isBlack(lightSensorLeft) && isWhite(lightSensorMiddle) && isWhite(lightSensorRight) ||
-                 isBlack(lightSensorLeft) && isBlack(lightSensorMiddle) && isWhite(lightSensorRight)) {
-            // Nach links drehen, linken Motor eventuell rückwärts
-            // drehen wenn Kurven kleiner sind.
+
+        else if (isBlack(lightSensorLeft) && isBlack(lightSensorMiddle) && isWhite(lightSensorRight)) {
             OnFwd(motorRight, 100);
             Off(motorLeft);
+        }
+
+        else if (isBlack(lightSensorLeft) && isWhite(lightSensorMiddle) && isWhite(lightSensorRight)) {
+            // Scharf links abbiegen. TODO: Verbessern.
+            OnFwd(motorRight, 100);
+            OnRev(motorLeft, 100);
         }
 
     }
