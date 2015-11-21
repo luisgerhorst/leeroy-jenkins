@@ -40,7 +40,7 @@ void calibrateLightSensors(int blackSensor, int whiteSensor1, int whiteSensor2) 
     NumOut(0, LCD_LINE1, black);
     NumOut(0, LCD_LINE2, white);
     NumOut(0, LCD_LINE3, blackWhiteAverage);
-    Wait(5*1000);
+    Wait(2*1000);
 }
 
 // Hand
@@ -63,6 +63,36 @@ void release() {
     RotateMotor(motorHand, 100, GRAB_DEGREES);
 }
 
+// Driving
+
+void drive(int speed) {
+    OnRev(motorsLeftRight, speed);
+}
+
+void driveBack(int speed) {
+    OnFwd(motorsLeftRight, speed);
+}
+
+void driveLeft(int speed) {
+    Off(motorLeft);
+    OnRev(motorRight, speed);
+}
+
+void driveRight(int speed) {
+    OnRev(motorLeft, speed);
+    Off(motorRight);
+}
+
+void turnRight(int speed) {
+    OnFwd(motorLeft, speed);
+    OnRev(motorRight, speed);
+}
+
+void turnLeft(int speed) {
+    OnRev(motorLeft, speed);
+    OnFwd(motorRight, speed);
+}
+
 // Other
 
 enum Turn { left, right, none };
@@ -81,45 +111,51 @@ task main () {
 
         // Auf Linie.
         if (isWhite(lightSensorLeft) && isBlack(lightSensorMiddle) && isWhite(lightSensorRight)) {
-            OnFwd(motorsLeftRight, 100);
+            drive(100);
         }
 
         // Parallel zu Linie, hoffentlich nicht ganz parallel.
         else if (isBlack(lightSensorLeft) && isBlack(lightSensorMiddle) && isBlack(lightSensorRight)) {
             // Weiter in Fahrtrichtung.
-            OnFwd(motorsLeftRight, 50);
+            drive(50);
         }
 
         // Linie verloren.
         else if (isWhite(lightSensorLeft) && isWhite(lightSensorMiddle) && isWhite(lightSensorRight)) {
             // Zurückfahren
-            OnRev(motorsLeftRight, 50);
+            driveBack(50);
         }
 
         // Rechte Seite wird schwarz.
 
         else if (isWhite(lightSensorLeft) && isBlack(lightSensorMiddle) && isBlack(lightSensorRight)) {
-            Off(motorRight);
-            OnFwd(motorLeft, 100);
+            driveBack(100);
+            until(isWhite(lightSensorRight));
+            driveRight(100);
+            until(isBlack(lightSensorLeft));
+            driveBack(100);
+            until(isWhite(lightSensorLeft));
         }
 
         else if (isWhite(lightSensorLeft) && isWhite(lightSensorMiddle) && isBlack(lightSensorRight)) {
             // Scharf rechts abbiegen. TODO: Verbessern.
-            OnRev(motorRight, 100);
-            OnFwd(motorLeft, 100);
+            driveRight(50);
         }
 
         // Linke Seite wird schwarz.
 
         else if (isBlack(lightSensorLeft) && isBlack(lightSensorMiddle) && isWhite(lightSensorRight)) {
-            OnFwd(motorRight, 100);
-            Off(motorLeft);
+            driveBack(100);
+            until(isWhite(lightSensorLeft));
+            driveLeft(100);
+            until(isBlack(lightSensorRight));
+            driveBack(100);
+            until(isWhite(lightSensorRight));
         }
 
         else if (isBlack(lightSensorLeft) && isWhite(lightSensorMiddle) && isWhite(lightSensorRight)) {
             // Scharf links abbiegen. TODO: Verbessern.
-            OnFwd(motorRight, 100);
-            OnRev(motorLeft, 100);
+            driveLeft(50);
         }
 
     }
