@@ -1,21 +1,23 @@
 // Sensors
 
+int lightSensorOuterLeft = IN_2;
+
 int lightSensorLeft = IN_1;
-int lightSensorMiddle = IN_2;
 int lightSensorRight = IN_3;
+
 int touchSensor = IN_4;
 
 void setUpSensors() {
+    SetSensorLight(lightSensorOuterLeft);
     SetSensorLight(lightSensorLeft);
-    SetSensorLight(lightSensorMiddle);
     SetSensorLight(lightSensorRight);
     SetSensorTouch(touchSensor);
 }
 
 // Motors
 int motorsLeftRight = OUT_AC;
-int motorRight = OUT_A;
-int motorLeft = OUT_C;
+int motorRight = OUT_C;
+int motorLeft = OUT_A;
 
 int motorHand = OUT_B;
 
@@ -31,9 +33,9 @@ bool isBlack(int sensor) {
     return Sensor(sensor) < blackWhiteAverage;
 }
 
-void calibrateLightSensors(int blackSensor, int whiteSensor1, int whiteSensor2) {
+void calibrateLightSensors(int blackSensor, int whiteSensor) {
     int black = Sensor(blackSensor);
-    int white = (Sensor(whiteSensor1) + Sensor(whiteSensor2)) / 2;
+    int white = Sensor(whiteSensor);
     blackWhiteAverage = (black + white) / 2;
 
     // Show calculated values.
@@ -84,13 +86,13 @@ void driveRight(int speed) {
 }
 
 void turnRight(int speed) {
-    OnFwd(motorLeft, speed);
-    OnRev(motorRight, speed);
+    OnRev(motorLeft, speed);
+    OnFwd(motorRight, speed);
 }
 
 void turnLeft(int speed) {
-    OnRev(motorLeft, speed);
-    OnFwd(motorRight, speed);
+    OnFwd(motorLeft, speed);
+    OnRev(motorRight, speed);
 }
 
 // Other
@@ -102,61 +104,49 @@ enum Turn { left, right, none };
 task main () {
 
     setUpSensors();
-    calibrateLightSensors(lightSensorMiddle, lightSensorLeft, lightSensorRight);
+    calibrateLightSensors(lightSensorLeft, lightSensorOuterLeft);
 
     // Start
-    OnFwd(motorsLeftRight, 100);
+    drive(100);
 
     while (true) {
 
-        // Auf Linie.
-        if (isWhite(lightSensorLeft) && isBlack(lightSensorMiddle) && isWhite(lightSensorRight)) {
+        if (isBlack(lightSensorLeft) && isBlack(lightSensorRight)) {
             drive(100);
         }
 
-        // Parallel zu Linie, hoffentlich nicht ganz parallel.
-        else if (isBlack(lightSensorLeft) && isBlack(lightSensorMiddle) && isBlack(lightSensorRight)) {
-            // Weiter in Fahrtrichtung.
-            drive(50);
-        }
-
-        // Linie verloren.
-        else if (isWhite(lightSensorLeft) && isWhite(lightSensorMiddle) && isWhite(lightSensorRight)) {
-            // Zurückfahren
-            driveBack(50);
-        }
-
-        // Rechte Seite wird schwarz.
-
-        else if (isWhite(lightSensorLeft) && isBlack(lightSensorMiddle) && isBlack(lightSensorRight)) {
-            driveBack(100);
-            until(isWhite(lightSensorRight));
+        else if (isWhite(lightSensorLeft) && isBlack(lightSensorRight)) {
             driveRight(100);
-            until(isBlack(lightSensorLeft));
-            driveBack(100);
-            until(isWhite(lightSensorLeft));
         }
 
-        else if (isWhite(lightSensorLeft) && isWhite(lightSensorMiddle) && isBlack(lightSensorRight)) {
-            // Scharf rechts abbiegen. TODO: Verbessern.
-            driveRight(50);
-        }
-
-        // Linke Seite wird schwarz.
-
-        else if (isBlack(lightSensorLeft) && isBlack(lightSensorMiddle) && isWhite(lightSensorRight)) {
-            driveBack(100);
-            until(isWhite(lightSensorLeft));
+        else if (isBlack(lightSensorLeft) && isWhite(lightSensorRight)) {
             driveLeft(100);
-            until(isBlack(lightSensorRight));
-            driveBack(100);
-            until(isWhite(lightSensorRight));
         }
 
-        else if (isBlack(lightSensorLeft) && isWhite(lightSensorMiddle) && isWhite(lightSensorRight)) {
-            // Scharf links abbiegen. TODO: Verbessern.
-            driveLeft(50);
+        else if (isWhite(lightSensorLeft) && isWhite(lightSensorRight)) {
+
+            int turn90DegDuration = 500;
+            
+            // Links nach linie suchen.
+            turnLeft(100);
+            int msTurnedLeft = 0;
+            while (msTurnedLeft < turn90DegDuration && isWhite(lightSensorLeft)) {
+                msTurnedLeft += 2;
+                Wait(2);
+            }
+
+            // Rechts nach linie suchen.
+            drive(100);
+            Wait(100);
+            turnRight(100);
+            int msTurnedRight = 0;
+            while (msTurnedRight < 2*turn90DegDuration && isWhite(lightSensorLeft)) {
+                msTurnedRight += 2;
+                Wait(2);
+            }
+
         }
+            
 
     }
 }
