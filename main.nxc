@@ -25,12 +25,20 @@ int motorHand = OUT_B;
 
 int blackWhiteAverage = 0;
 
-bool isWhite(int sensor) {
-    return Sensor(sensor) > blackWhiteAverage;
+bool isWhite(int color) {
+    return color > blackWhiteAverage;
 }
 
-bool isBlack(int sensor) {
-    return Sensor(sensor) < blackWhiteAverage;
+bool isBlack(int color) {
+    return color < blackWhiteAverage;
+}
+
+bool sensorIsWhite(int sensor) {
+    return isWhite(Sensor(sensor));
+}
+
+bool sensorIsBlack(int sensor) {
+    return isBlack(Sensor(sensor));
 }
 
 void calibrateLightSensors(int blackSensor, int whiteSensor) {
@@ -95,10 +103,6 @@ void turnLeft(int speed) {
     OnRev(motorRight, speed);
 }
 
-// Other
-
-enum Turn { left, right, none };
-
 // Program Flow
 
 task main () {
@@ -109,44 +113,52 @@ task main () {
     // Start
     drive(100);
 
+    bool leftIsBlack, leftIsWhite, rightIsBlack, rightIsWhite, outerLeftIsBlack, outerLeftIsWhite;
+
+    int i = 0;
+
     while (true) {
 
-        if (isBlack(lightSensorLeft) && isBlack(lightSensorRight)) {
+        i++;
+        NumOut(0, LCD_LINE4, i);
+
+        leftIsBlack = sensorIsBlack(lightSensorLeft);
+        leftIsWhite = !leftIsBlack;
+
+        rightIsBlack = sensorIsBlack(lightSensorRight);
+        rightIsWhite = !rightIsBlack;
+
+        if (rightIsBlack) NumOut(0, LCD_LINE2, 0);
+        else NumOut(0, LCD_LINE2, 1);
+
+        if (leftIsBlack && rightIsBlack) {
             drive(100);
         }
 
-        else if (isWhite(lightSensorLeft) && isBlack(lightSensorRight)) {
+        else if (leftIsWhite && rightIsBlack) {
             driveRight(100);
         }
 
-        else if (isBlack(lightSensorLeft) && isWhite(lightSensorRight)) {
+        else if (leftIsBlack && rightIsBlack) {
             driveLeft(100);
         }
 
-        else if (isWhite(lightSensorLeft) && isWhite(lightSensorRight)) {
+        else {
 
-            int turn90DegDuration = 500;
-            
-            // Links nach linie suchen.
-            turnLeft(100);
-            int msTurnedLeft = 0;
-            while (msTurnedLeft < turn90DegDuration && isWhite(lightSensorLeft)) {
-                msTurnedLeft += 2;
-                Wait(2);
+            outerLeftIsBlack = sensorIsBlack(lightSensorOuterLeft);
+            outerLeftIsWhite = !outerLeftIsBlack;
+
+            if (outerLeftIsBlack) {
+                turnLeft(100);
+                until (sensorIsBlack(lightSensorLeft));
             }
 
-            // Rechts nach linie suchen.
-            drive(100);
-            Wait(100);
-            turnRight(100);
-            int msTurnedRight = 0;
-            while (msTurnedRight < 2*turn90DegDuration && isWhite(lightSensorLeft)) {
-                msTurnedRight += 2;
-                Wait(2);
+            else if (outerLeftIsWhite && leftIsWhite && rightIsWhite) {
+                turnRight(100);
+                // TODO: Max 90 Grad drehen. Dann andere Seite checken.
             }
 
         }
-            
 
     }
 }
