@@ -1,6 +1,6 @@
 // Sensors
 
-int lightSensorOuterLeft = IN_2;
+int lightSensorCenter = IN_2;
 
 int lightSensorLeft = IN_1;
 int lightSensorRight = IN_3;
@@ -8,7 +8,7 @@ int lightSensorRight = IN_3;
 int touchSensor = IN_4;
 
 void setUpSensors() {
-    SetSensorLight(lightSensorOuterLeft);
+    SetSensorLight(lightSensorCenter);
     SetSensorLight(lightSensorLeft);
     SetSensorLight(lightSensorRight);
     SetSensorTouch(touchSensor);
@@ -83,14 +83,17 @@ void driveBack(int speed) {
     OnFwd(motorsLeftRight, speed);
 }
 
+float turnRatio = 6/10;
+
 void driveLeft(int speed) {
-    Off(motorLeft);
+    OnFwd(motorLeft, speed*turnRatio);
     OnRev(motorRight, speed);
 }
 
 void driveRight(int speed) {
     OnRev(motorLeft, speed);
-    Off(motorRight);
+    OnFwd(motorRight, speed*turnRatio);
+    
 }
 
 void turnRight(int speed) {
@@ -108,12 +111,11 @@ void turnLeft(int speed) {
 task main () {
 
     setUpSensors();
-    calibrateLightSensors(lightSensorLeft, lightSensorOuterLeft);
+    calibrateLightSensors(lightSensorCenter, lightSensorLeft);
 
     // Start
-    drive(100);
 
-    bool leftIsBlack, leftIsWhite, rightIsBlack, rightIsWhite, outerLeftIsBlack, outerLeftIsWhite;
+    bool leftIsBlack, leftIsWhite, rightIsBlack, rightIsWhite, centerIsBlack, centerIsWhite;
 
     int i = 0;
 
@@ -128,62 +130,23 @@ task main () {
         rightIsBlack = sensorIsBlack(lightSensorRight);
         rightIsWhite = !rightIsBlack;
 
-        outerLeftIsBlack = sensorIsBlack(lightSensorOuterLeft);
-        outerLeftIsWhite = !outerLeftIsBlack;
+        centerIsBlack = sensorIsBlack(lightSensorCenter);
+        centerIsWhite = !centerIsBlack;
 
-        if (outerLeftIsWhite && leftIsBlack && rightIsBlack) {
+        if (leftIsWhite && centerIsBlack && rightIsWhite) {
             drive(100);
         }
 
-        else if (outerLeftIsWhite && leftIsWhite && rightIsBlack) {
-            driveRight(100);
-        }
-
-        else if (outerLeftIsWhite && leftIsBlack && rightIsBlack) {
+        else if (leftIsBlack && rightIsWhite) {
             driveLeft(100);
         }
 
-        else {
+        else if (leftIsWhite && rightIsBlack) {
+            driveRight(100);
+        }
 
-            if (outerLeftIsBlack) {
-                turnLeft(100);
-
-                int turnTime = 0;
-                int limit = 750;
-                while (sensorIsWhite(lightSensorLeft) && turnTime <= limit) {
-                    turnTime += 10;
-                    Wait(10);
-                }
-                
-                if (turnTime > limit) {
-                    // Reverse
-                    turnRight(100);
-                    Wait(turnTime);
-                    // Try right side.
-                    turnRight(100);
-                    until (sensorIsBlack(lightSensorRight));
-                }
-            }
-
-            else if (outerLeftIsWhite && leftIsWhite && rightIsWhite) {
-                
-                turnRight(100);
-                int turnTime = 0;
-                int limit = 500;
-                while ((sensorIsWhite(lightSensorOuterLeft) && sensorIsWhite(lightSensorLeft) && sensorIsWhite(lightSensorRight)) && turnTime <= limit) {
-                    turnTime += 10;
-                    Wait(10);
-                }
-                
-                if (turnTime > limit) {
-                    turnLeft(100);
-                    Wait(turnTime);
-                    drive(100);
-                    until (sensorIsBlack(lightSensorLeft) || sensorIsBlack(lightSensorRight));
-                }
-                       
-            }
-
+        else if (leftIsWhite && centerIsWhite && rightIsWhite) {
+            drive(100);
         }
 
     }
