@@ -128,34 +128,60 @@ task main () {
         rightIsBlack = sensorIsBlack(lightSensorRight);
         rightIsWhite = !rightIsBlack;
 
-        if (rightIsBlack) NumOut(0, LCD_LINE2, 0);
-        else NumOut(0, LCD_LINE2, 1);
+        outerLeftIsBlack = sensorIsBlack(lightSensorOuterLeft);
+        outerLeftIsWhite = !outerLeftIsBlack;
 
-        if (leftIsBlack && rightIsBlack) {
+        if (outerLeftIsWhite && leftIsBlack && rightIsBlack) {
             drive(100);
         }
 
-        else if (leftIsWhite && rightIsBlack) {
+        else if (outerLeftIsWhite && leftIsWhite && rightIsBlack) {
             driveRight(100);
         }
 
-        else if (leftIsBlack && rightIsBlack) {
+        else if (outerLeftIsWhite && leftIsBlack && rightIsBlack) {
             driveLeft(100);
         }
 
         else {
 
-            outerLeftIsBlack = sensorIsBlack(lightSensorOuterLeft);
-            outerLeftIsWhite = !outerLeftIsBlack;
-
             if (outerLeftIsBlack) {
                 turnLeft(100);
-                until (sensorIsBlack(lightSensorLeft));
+
+                int turnTime = 0;
+                int limit = 750;
+                while (sensorIsWhite(lightSensorLeft) && turnTime <= limit) {
+                    turnTime += 10;
+                    Wait(10);
+                }
+                
+                if (turnTime > limit) {
+                    // Reverse
+                    turnRight(100);
+                    Wait(turnTime);
+                    // Try right side.
+                    turnRight(100);
+                    until (sensorIsBlack(lightSensorRight));
+                }
             }
 
             else if (outerLeftIsWhite && leftIsWhite && rightIsWhite) {
+                
                 turnRight(100);
-                // TODO: Max 90 Grad drehen. Dann andere Seite checken.
+                int turnTime = 0;
+                int limit = 500;
+                while ((sensorIsWhite(lightSensorOuterLeft) && sensorIsWhite(lightSensorLeft) && sensorIsWhite(lightSensorRight)) && turnTime <= limit) {
+                    turnTime += 10;
+                    Wait(10);
+                }
+                
+                if (turnTime > limit) {
+                    turnLeft(100);
+                    Wait(turnTime);
+                    drive(100);
+                    until (sensorIsBlack(lightSensorLeft) || sensorIsBlack(lightSensorRight));
+                }
+                       
             }
 
         }
