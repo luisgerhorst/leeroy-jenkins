@@ -1,6 +1,6 @@
-/***********/
-/* Sensors */
-/***********/
+/************/
+/* Sensoren */
+/************/
 
 // Immer diese Variablennamen statt IN_1 oder ähnlichem verwenden.
 
@@ -18,9 +18,9 @@ void setUpSensors() {
     SetSensorTouch(touchSensor);
 }
 
-/**********/
-/* Motors */
-/**********/
+/***********/
+/* Motoren */
+/***********/
 
 // Immer diese Variablennamen statt OUT_A oder ähnlichem verwenden.
 
@@ -31,7 +31,7 @@ int motorLeft = OUT_A;
 int motorHand = OUT_B;
 
 /*****************/
-/* Light Sensors */
+/* Lichtsensoren */
 /*****************/
 
 // Gibt die Grenze zwischen dem, was als weiß und dem was als schwarz
@@ -66,9 +66,9 @@ void calibrateLightSensors(int blackSensor, int whiteSensor) {
     Wait(2*1000);
 }
 
-/********/
-/* Hand */
-/********/
+/***********/
+/* Greifer */
+/***********/
 
 #define GRAB_DEGREES 6*360+180
 
@@ -88,9 +88,9 @@ void release() {
     RotateMotor(motorHand, 100, GRAB_DEGREES);
 }
 
-/***********/
-/* Driving */
-/***********/
+/**********/
+/* Fahren */
+/**********/
 
 // Achtung: Motoren sind falsch rum angebracht, OnFwd bewegt den Roboter
 // eventuell rückwärts. Deswegen am besten die folgenden Funktionen
@@ -133,12 +133,15 @@ void turnLeft(int speed) {
 }
 */
 
-// Program Flow
+/******************************/
+/* Beginn des Programmablaufs */
+/******************************/
 
 task main () {
 
     setUpSensors();
-    // Mittlerer Lichtsensor muss am Anfang schwarz sein, der linke weiß.
+    // Mittlerer Lichtsensor muss am Anfang auf schwarz sein, der linke
+    // weiß.
     calibrateLightSensors(lightSensorCenter, lightSensorLeft);
 
     // Start
