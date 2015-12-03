@@ -1,4 +1,8 @@
-// Sensors
+/***********/
+/* Sensors */
+/***********/
+
+// Immer diese Variablennamen statt IN_1 oder ähnlichem verwenden.
 
 int lightSensorCenter = IN_2;
 
@@ -14,15 +18,24 @@ void setUpSensors() {
     SetSensorTouch(touchSensor);
 }
 
-// Motors
+/**********/
+/* Motors */
+/**********/
+
+// Immer diese Variablennamen statt OUT_A oder ähnlichem verwenden.
+
 int motorsLeftRight = OUT_AC;
 int motorRight = OUT_C;
 int motorLeft = OUT_A;
 
 int motorHand = OUT_B;
 
-// Light Sensors
+/*****************/
+/* Light Sensors */
+/*****************/
 
+// Gibt die Grenze zwischen dem, was als weiß und dem was als schwarz
+// interpretiert wird an:
 int blackWhiteAverage = 0;
 
 bool isWhite(int color) {
@@ -46,14 +59,16 @@ void calibrateLightSensors(int blackSensor, int whiteSensor) {
     int white = Sensor(whiteSensor);
     blackWhiteAverage = (black + white) / 2;
 
-    // Show calculated values.
+    // Berechnete Werte anzeigen und kurz warten.
     NumOut(0, LCD_LINE1, black);
     NumOut(0, LCD_LINE2, white);
     NumOut(0, LCD_LINE3, blackWhiteAverage);
     Wait(2*1000);
 }
 
-// Hand
+/********/
+/* Hand */
+/********/
 
 #define GRAB_DEGREES 6*360+180
 
@@ -73,7 +88,13 @@ void release() {
     RotateMotor(motorHand, 100, GRAB_DEGREES);
 }
 
-// Driving
+/***********/
+/* Driving */
+/***********/
+
+// Achtung: Motoren sind falsch rum angebracht, OnFwd bewegt den Roboter
+// eventuell rückwärts. Deswegen am besten die folgenden Funktionen
+// verwenden um sich zu bewegen.
 
 void drive(int speed) {
     OnRev(motorsLeftRight, speed);
@@ -83,6 +104,11 @@ void driveBack(int speed) {
     OnFwd(motorsLeftRight, speed);
 }
 
+// Gibt an wie stark er sich drehen soll, muss angepasst werden je
+// nachdem wie weit die Sensoren vom Drehpunkt entfernt sind. Ist der
+// Wert 1, so dreht er sich auf der Stelle (eine Kette in die eine
+// Richtung, die andere in die entgegengesetzte), ist der Wert 0 so wird
+// beim Linksdrehen z.B. nur die Rechte Kette in Fahrtrichtung bewegt.
 float turnRatio = 6/10;
 
 void driveLeft(int speed) {
@@ -93,9 +119,9 @@ void driveLeft(int speed) {
 void driveRight(int speed) {
     OnRev(motorLeft, speed);
     OnFwd(motorRight, speed*turnRatio);
-    
 }
 
+/* Wird derzeit nicht benötigt (drehen auf der Stelle):
 void turnRight(int speed) {
     OnRev(motorLeft, speed);
     OnFwd(motorRight, speed);
@@ -105,24 +131,33 @@ void turnLeft(int speed) {
     OnFwd(motorLeft, speed);
     OnRev(motorRight, speed);
 }
+*/
 
 // Program Flow
 
 task main () {
 
     setUpSensors();
+    // Mittlerer Lichtsensor muss am Anfang schwarz sein, der linke weiß.
     calibrateLightSensors(lightSensorCenter, lightSensorLeft);
 
     // Start
 
     bool leftIsBlack, leftIsWhite, rightIsBlack, rightIsWhite, centerIsBlack, centerIsWhite;
 
-    int i = 0;
+    int loopCount = 0;
 
+    // Event Loop: Am besten immer nur einzelene Bedingungen (if) und die
+    // Reaktionen (drive, grab, ...) die sie erzeugen einbauen und die Schleife nicht mit
+    // Wait oder ähnlichem blockieren.
     while (true) {
 
-        i++;
-        NumOut(0, LCD_LINE4, i);
+        // Zeigt an wie oft die Schleife durchlaufen wurde bzw. lässt
+        // erkennen wenn sie blockiert ist.
+        loopCount++;
+        NumOut(0, LCD_LINE4, loopCount);
+
+        // Sensoren auslesen:
 
         leftIsBlack = sensorIsBlack(lightSensorLeft);
         leftIsWhite = !leftIsBlack;
@@ -133,10 +168,16 @@ task main () {
         centerIsBlack = sensorIsBlack(lightSensorCenter);
         centerIsWhite = !centerIsBlack;
 
+        // Entscheiden was getan werden soll:
+        
         if (leftIsWhite && centerIsBlack && rightIsWhite) {
             drive(100);
         }
 
+        // Die folgenden 2 Bedingungen könnten eventuell noch verfeinert
+        // werden, obwohl es so eigentlich sehr gut funktioniert
+        // (15-12-03 ~Luis)
+        
         else if (leftIsBlack && rightIsWhite) {
             driveLeft(100);
         }
