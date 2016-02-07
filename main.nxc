@@ -251,10 +251,6 @@ struct instruction {
 instruction instructions[512];
 int currentInstruction = 0;
 
-void endInstruction() {
-    instructions[currentInstruction].time = CurrentTick() - instructions[currentInstruction].time;
-}
-
 int nextInstruction(int current) {
     int next = current + 1;
     if (next >= ArrayLen(instructions)) next = 0;
@@ -267,39 +263,72 @@ int previousInstruction(int current) {
     return next - 1;
 }
 
+void endInstruction() {
+    // Only end it if there is one. Prevents gaps in instructions array
+    // after undoing.
+    if (instructions[currentInstruction].action > 0) {
+        instructions[currentInstruction].time = CurrentTick() - instructions[currentInstruction].time;
+        currentInstruction = nextInstruction(currentInstruction);
+    }
+}
+
 void saveInstruction(byte action) {
     if (instructions[currentInstruction].action != action) {
-
         endInstruction();
-        currentInstruction = nextInstruction(currentInstruction);
-
         instructions[currentInstruction].action = action;
         instructions[currentInstruction].time = CurrentTick();
-
     }
 }
 
 void undo(long toUndo) {
 
+
     long undoStart = CurrentTick();
+    long undone = 0;
 
-    while ((CurrentTick() - undoStart) < toUndo &&
-           instructions[currentInstruction].action != 0) {
+    while (undone < toUndo &&
+           instructions[previousInstruction(currentInstruction)].action > 0) {
 
-        long actionStart = CurrentTick();
-        performInverse(instructions[currentInstruction].action);
+        NumOut(0, LCD_LINE2, undone);
 
-        // Wait until instruction or inverse period ends.
-        until ((CurrentTick() - undoStart) >= toUndo ||
-               (CurrentTick() - actionStart) >= instructions[currentInstruction].time);
-
-        // Delete performed instruction to prevent cylcing throug
-        // instrcutions array.
-        instructions[currentInstruction].action = 0;
-        instructions[currentInstruction].time = 0;
         // Next perform inverse of previous instruction.
         currentInstruction = previousInstruction(currentInstruction);
 
+        NumOut(0, LCD_LINE5, currentInstruction);
+
+        long actionStart = CurrentTick();
+        long actionDone = 0;
+        performInverse(instructions[currentInstruction].action);
+
+        NumOut(0, LCD_LINE4, instructions[currentInstruction].time);
+
+        // Wait until instruction or inverse period ends.
+        while ((undone + actionDone) < toUndo &&
+               actionDone < instructions[currentInstruction].time) {
+            actionDone = CurrentTick() - actionStart;
+            NumOut(0, LCD_LINE3, actionDone);
+        }
+
+        undone = undone + actionDone;
+        stopDriving();
+
+        // Delete performed instruction to prevent cylcing throug
+        // instrcutions array. If there is timeLeft for this instruction
+        // update it's time attribute.
+        int timeLeft = instructions[currentInstruction].time - actionDone;
+        if (timeLeft > 0) {
+            instructions[currentInstruction].time = timeLeft;
+        } else {
+            instructions[currentInstruction].action = 0;
+            instructions[currentInstruction].time = 0;
+        }
+
+    }
+
+    // Jump to next instruction if current one was aborted due to toUndo
+    // limit.
+    if (instructions[currentInstruction].action > 1) {
+        currentInstruction = nextInstruction(currentInstruction);
     }
 
 }
@@ -351,8 +380,10 @@ task main () {
         }
 
         if (state == grabbedBallState) {
-            undo(4*1000);
+
+            undo(2500);
             switchDirection();
+
             state = reversedState;
             continue;
         }
