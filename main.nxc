@@ -1,3 +1,5 @@
+
+
 /************/
 /* Sensoren */
 /************/
@@ -60,30 +62,29 @@ void calibrateLightSensors(int blackSensor, int whiteSensor) {
     blackWhiteAverage = (black + white) / 2;
 
     // Berechnete Werte anzeigen und kurz warten.
-    NumOut(0, LCD_LINE1, black);
-    NumOut(0, LCD_LINE2, white);
-    NumOut(0, LCD_LINE3, blackWhiteAverage);
-    Wait(2*1000);
+    /* NumOut(0, LCD_LINE1, black); */
+    /* NumOut(0, LCD_LINE2, white); */
+    /* NumOut(0, LCD_LINE3, blackWhiteAverage); */
+    Wait(1*1000);
 }
 
 /***********/
 /* Greifer */
 /***********/
 
-#define GRAB_DEGREES 6*360+180
+#define GRAB_DEGREES 9*360
 
 void grab() {
     /*
-      Startposition: Graue Markierung an Kurbel nach oben, schwarze
-      Markierung and Zahnrädern direkt vor Limit.
+      Startposition: Zahnräder ans äußere Limit, dann drehen bis Stecker
+      an Kurbel nach oben und dann nochmal eine Umdrehung.
     */
     RotateMotor(motorHand, 100, -GRAB_DEGREES);
 }
 
 void release() {
     /*
-      Startposition: Graue Markierung an Kurbel nach oben, Zahnräder
-      ca. eine Umdrehung vor Limit.
+      Startposition: Stecker an Kurbel nach oben.
     */
     RotateMotor(motorHand, 100, GRAB_DEGREES);
 }
@@ -96,12 +97,14 @@ void release() {
 // eventuell rückwärts. Deswegen am besten die folgenden Funktionen
 // verwenden um sich zu bewegen.
 
-void drive(int speed) {
-    OnRev(motorsLeftRight, speed);
+float slower = 1;
+
+void driveForwards(char speed) {
+    OnFwd(motorsLeftRight, slower*speed);
 }
 
-void driveBack(int speed) {
-    OnFwd(motorsLeftRight, speed);
+void driveBackwards(char speed) {
+    OnRev(motorsLeftRight, slower*speed);
 }
 
 // Gibt an wie stark er sich drehen soll, muss angepasst werden je
@@ -109,29 +112,197 @@ void driveBack(int speed) {
 // Wert 1, so dreht er sich auf der Stelle (eine Kette in die eine
 // Richtung, die andere in die entgegengesetzte), ist der Wert 0 so wird
 // beim Linksdrehen z.B. nur die Rechte Kette in Fahrtrichtung bewegt.
-float turnRatio = 6/10;
+float turnRatio = 6.5/10;
 
-void driveLeft(int speed) {
-    OnFwd(motorLeft, speed*turnRatio);
-    OnRev(motorRight, speed);
+void driveLeft(char speed) {
+    OnRev(motorLeft, slower*speed*turnRatio);
+    OnFwd(motorRight, slower*speed);
 }
 
-void driveRight(int speed) {
-    OnRev(motorLeft, speed);
-    OnFwd(motorRight, speed*turnRatio);
+void driveRight(char speed) {
+    OnFwd(motorLeft, slower*speed);
+    OnRev(motorRight, slower*speed*turnRatio);
 }
 
-/* Wird derzeit nicht benötigt (drehen auf der Stelle):
-void turnRight(int speed) {
-    OnRev(motorLeft, speed);
-    OnFwd(motorRight, speed);
+void driveLeftBackwards(char speed) {
+    OnFwd(motorLeft, slower*speed*turnRatio);
+    OnRev(motorRight, slower*speed);
 }
 
-void turnLeft(int speed) {
-    OnFwd(motorLeft, speed);
-    OnRev(motorRight, speed);
+void driveRightBackwards(char speed) {
+    OnRev(motorLeft, slower*speed);
+    OnFwd(motorRight, slower*speed*turnRatio);
 }
-*/
+
+void turnRight(char speed) {
+    OnFwd(motorLeft, slower*speed);
+    OnRev(motorRight, slower*speed);
+}
+
+void turnLeft(char speed) {
+    OnRev(motorLeft, slower*speed);
+    OnFwd(motorRight, slower*speed);
+}
+
+void stopDriving() {
+    driveForwards(0);
+}
+
+void switchDirection() {
+
+    turnRight(100);
+
+    int leavingState = 0,
+        leftState = 1,
+        doneState = 2;
+    int state = leavingState;
+
+    int allWhiteAcc = 0,
+        centerBlackAcc = 0;
+
+    while (state != doneState) {
+
+        // Read data:
+
+        bool
+            leftIsBlack = sensorIsBlack(lightSensorLeft),
+            rightIsBlack = sensorIsBlack(lightSensorRight),
+            centerIsBlack = sensorIsBlack(lightSensorCenter),
+            leftIsWhite = !leftIsBlack,
+            rightIsWhite = !rightIsBlack,
+            centerIsWhite = !centerIsBlack;
+
+        if (leftIsWhite && rightIsWhite && centerIsWhite) {
+            allWhiteAcc++;
+            centerBlackAcc = 0;
+        }
+
+        if (centerIsBlack) {
+            allWhiteAcc = 0;
+            centerBlackAcc++;
+        }
+
+        // Check if milestone achieved:
+
+        if (state == leavingState && allWhiteAcc > 5) {
+            state = leftState;
+        }
+
+        if (state == leftState && centerBlackAcc > 5) {
+            state = doneState;
+        }
+
+    }
+
+    stopDriving();
+
+}
+
+/***********/
+/* Actions */
+/***********/
+
+byte performInverse(byte action) {
+    if (action == 1) driveBackwards(100);
+    if (action == 2) driveLeftBackwards(100);
+    if (action == 3) driveRightBackwards(100);
+}
+
+byte drive() {
+
+    bool
+        leftIsBlack = sensorIsBlack(lightSensorLeft),
+        rightIsBlack = sensorIsBlack(lightSensorRight),
+        centerIsBlack = sensorIsBlack(lightSensorCenter),
+        leftIsWhite = !leftIsBlack,
+        rightIsWhite = !rightIsBlack,
+        centerIsWhite = !centerIsBlack;
+
+    if (leftIsWhite && centerIsBlack && rightIsWhite ||
+        leftIsWhite && centerIsWhite && rightIsWhite) {
+        driveForwards(100);
+        return 1;
+    }
+
+    if (leftIsBlack && rightIsWhite) {
+        driveLeft(100);
+        return 2;
+    }
+
+    if (leftIsWhite && rightIsBlack) {
+        driveRight(100);
+        return 3;
+    }
+
+}
+
+/***********/
+/* Undoing */
+/***********/
+
+struct instruction {
+    // 0 if no action, 1 to 255 for actions.
+    byte action;
+    // First stores start tick, after instruction ends stores time the
+    // instruction was active.
+    long time;
+};
+
+instruction instructions[512];
+int currentInstruction = 0;
+
+void endInstruction() {
+    instructions[currentInstruction].time = CurrentTick() - instructions[currentInstruction].time;
+}
+
+int nextInstruction(int current) {
+    int next = current + 1;
+    if (next >= ArrayLen(instructions)) next = 0;
+    return next;
+}
+
+int previousInstruction(int current) {
+    int next = current;
+    if (current == 0) next = ArrayLen(instructions);
+    return next - 1;
+}
+
+void saveInstruction(byte action) {
+    if (instructions[currentInstruction].action != action) {
+
+        endInstruction();
+        currentInstruction = nextInstruction(currentInstruction);
+
+        instructions[currentInstruction].action = action;
+        instructions[currentInstruction].time = CurrentTick();
+
+    }
+}
+
+void undo(long toUndo) {
+
+    long undoStart = CurrentTick();
+
+    while ((CurrentTick() - undoStart) < toUndo &&
+           instructions[currentInstruction].action != 0) {
+
+        long actionStart = CurrentTick();
+        performInverse(instructions[currentInstruction].action);
+
+        // Wait until instruction or inverse period ends.
+        until ((CurrentTick() - undoStart) >= toUndo ||
+               (CurrentTick() - actionStart) >= instructions[currentInstruction].time);
+
+        // Delete performed instruction to prevent cylcing throug
+        // instrcutions array.
+        instructions[currentInstruction].action = 0;
+        instructions[currentInstruction].time = 0;
+        // Next perform inverse of previous instruction.
+        currentInstruction = previousInstruction(currentInstruction);
+
+    }
+
+}
 
 /******************************/
 /* Beginn des Programmablaufs */
@@ -146,51 +317,60 @@ task main () {
 
     // Start
 
-    bool leftIsBlack, leftIsWhite, rightIsBlack, rightIsWhite, centerIsBlack, centerIsWhite;
+    /* Program States */
+    int initialState = 0;
+    int grabbedBallState = 1;
+    int reversedState = 2;
+    int releasedBallState = 3;
+    int state = 0;
 
-    int loopCount = 0;
+    int loopCount = initialState;
 
     // Event Loop: Am besten immer nur einzelene Bedingungen (if) und die
-    // Reaktionen (drive, grab, ...) die sie erzeugen einbauen und die Schleife nicht mit
-    // Wait oder ähnlichem blockieren.
+    // Reaktionen (drive, grab, ...) die sie erzeugen einbauen und die Schleife
+    // nicht mit Wait oder ähnlichem blockieren.
     while (true) {
 
-        // Zeigt an wie oft die Schleife durchlaufen wurde bzw. lässt
-        // erkennen wenn sie blockiert ist.
+        // Zeigt an wie oft die Schleife durchlaufen wurde bzw. lässt erkennen
+        // wenn sie blockiert ist.
         loopCount++;
-        NumOut(0, LCD_LINE4, loopCount);
+        NumOut(0, LCD_LINE1, loopCount);
 
-        // Sensoren auslesen:
-
-        leftIsBlack = sensorIsBlack(lightSensorLeft);
-        leftIsWhite = !leftIsBlack;
-
-        rightIsBlack = sensorIsBlack(lightSensorRight);
-        rightIsWhite = !rightIsBlack;
-
-        centerIsBlack = sensorIsBlack(lightSensorCenter);
-        centerIsWhite = !centerIsBlack;
+        bool touchSensorActive = Sensor(touchSensor);
 
         // Entscheiden was getan werden soll:
-        
-        if (leftIsWhite && centerIsBlack && rightIsWhite) {
-            drive(100);
+
+        if (touchSensorActive && state == initialState) {
+            stopDriving();
+            endInstruction();
+
+            grab();
+            state = grabbedBallState;
+
+            continue;
         }
 
-        // Die folgenden 2 Bedingungen könnten eventuell noch verfeinert
-        // werden, obwohl es so eigentlich sehr gut funktioniert
-        // (15-12-03 ~Luis)
-        
-        else if (leftIsBlack && rightIsWhite) {
-            driveLeft(100);
+        if (state == grabbedBallState) {
+            undo(4*1000);
+            switchDirection();
+            state = reversedState;
+            continue;
         }
 
-        else if (leftIsWhite && rightIsBlack) {
-            driveRight(100);
+        if (touchSensorActive && state == reversedState) {
+            stopDriving();
+            endInstruction();
+
+            release();
+            state = releasedBallState;
+
+            continue;
         }
 
-        else if (leftIsWhite && centerIsWhite && rightIsWhite) {
-            drive(100);
+        if (!touchSensorActive && (state == initialState || state == reversedState)) {
+            byte action = drive();
+            saveInstruction(action);
+            continue;
         }
 
     }
