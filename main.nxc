@@ -289,24 +289,24 @@ void undo(long toUndo) {
     while (undone < toUndo &&
            instructions[previousInstruction(currentInstruction)].action > 0) {
 
-        NumOut(0, LCD_LINE2, undone);
+        /* NumOut(0, LCD_LINE2, undone); */
 
         // Next perform inverse of previous instruction.
         currentInstruction = previousInstruction(currentInstruction);
 
-        NumOut(0, LCD_LINE5, currentInstruction);
+        /* NumOut(0, LCD_LINE5, currentInstruction); */
 
         long actionStart = CurrentTick();
         long actionDone = 0;
         performInverse(instructions[currentInstruction].action);
 
-        NumOut(0, LCD_LINE4, instructions[currentInstruction].time);
+        /* NumOut(0, LCD_LINE4, instructions[currentInstruction].time); */
 
         // Wait until instruction or inverse period ends.
         while ((undone + actionDone) < toUndo &&
                actionDone < instructions[currentInstruction].time) {
             actionDone = CurrentTick() - actionStart;
-            NumOut(0, LCD_LINE3, actionDone);
+            /* NumOut(0, LCD_LINE3, actionDone); */
         }
 
         undone = undone + actionDone;
@@ -327,7 +327,7 @@ void undo(long toUndo) {
 
     // Jump to next instruction if current one was aborted due to toUndo
     // limit.
-    if (instructions[currentInstruction].action > 1) {
+    if (instructions[currentInstruction].action > 0) {
         currentInstruction = nextInstruction(currentInstruction);
     }
 
@@ -353,7 +353,7 @@ task main () {
     int releasedBallState = 3;
     int state = 0;
 
-    int loopCount = initialState;
+    /* int loopCount = initialState; */
 
     // Event Loop: Am besten immer nur einzelene Bedingungen (if) und die
     // Reaktionen (drive, grab, ...) die sie erzeugen einbauen und die Schleife
@@ -362,8 +362,8 @@ task main () {
 
         // Zeigt an wie oft die Schleife durchlaufen wurde bzw. lässt erkennen
         // wenn sie blockiert ist.
-        loopCount++;
-        NumOut(0, LCD_LINE1, loopCount);
+        /* loopCount++; */
+        /* NumOut(0, LCD_LINE1, loopCount); */
 
         bool touchSensorActive = Sensor(touchSensor);
 
