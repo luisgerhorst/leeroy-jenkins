@@ -65,7 +65,7 @@ void calibrateLightSensors(int blackSensor, int whiteSensor) {
     /* NumOut(0, LCD_LINE1, black); */
     /* NumOut(0, LCD_LINE2, white); */
     /* NumOut(0, LCD_LINE3, blackWhiteAverage); */
-    Wait(1*1000);
+    /* Wait(1*1000); */
 }
 
 /***********/
