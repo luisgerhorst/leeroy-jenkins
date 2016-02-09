@@ -72,7 +72,7 @@ void calibrateLightSensors(int blackSensor, int whiteSensor) {
 /* Greifer */
 /***********/
 
-#define GRAB_DEGREES 9*360
+#define GRAB_DEGREES 11*360
 
 void grab() {
     /*
@@ -381,7 +381,7 @@ task main () {
 
         if (state == grabbedBallState) {
 
-            undo(2500);
+            undo(2000);
             switchDirection();
 
             state = reversedState;
